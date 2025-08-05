@@ -6,7 +6,7 @@ import pytz
 import asyncio
 
 # === НАСТРОЙКИ ===
-TOKEN = TOKEN = 8476130640:AAF3Mykhdw8LK41C6YKUfHriOty9ibU6oyg  # вставь сюда токен бота
+TOKEN = "8476130640:AAF3Mykhdw8LK41C6YKUfHriOty9ibU6oyg"  # вставь сюда токен бота
 TIMEZONE = pytz.timezone("Europe/Moscow")
 
 # === ЛОГИ ===
@@ -53,5 +53,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
