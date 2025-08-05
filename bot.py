@@ -17,10 +17,16 @@ logger = logging.getLogger(__name__)
 
 # === ХЕНДЛЕРЫ КОМАНД ===
 async def start(update, context):
-    await update.message.reply_text("Привет! Я бот, который шлёт ежедневные вопросы.")
+    # сохраняем chat_id в context.bot_data, чтобы потом слать туда
+    context.application.bot_data["chat_id"] = update.effective_chat.id
+    await update.message.reply_text("Привет! Я буду присылать тебе ежедневные вопросы.")
 
-async def send_daily_questions(context):
-    await context.bot.send_message(chat_id=context.job.chat_id, text="Ежедневный вопрос: Как дела?")
+async def send_daily_questions(app):
+    chat_id = app.bot_data.get("chat_id")
+    if chat_id:
+        await app.bot.send_message(chat_id=chat_id, text="Ежедневный вопрос: Как дела?")
+    else:
+        logger.warning("Нет сохранённого chat_id для отправки.")
 
 async def main():
     application = Application.builder().token(TOKEN).build()
@@ -30,21 +36,20 @@ async def main():
 
     # Планировщик
     scheduler = AsyncIOScheduler(timezone=TIMEZONE)
-    # Пример: отправка каждый день в 10:00
-    scheduler.add_job(
-        lambda: application.create_task(
-            send_daily_questions(
-                type("obj", (object,), {"bot": application.bot, "job": type("j", (object,), {"chat_id": ЧАТ_ID})()})
-            )
-        ),
-        "cron",
-        hour=10,
-        minute=0
-    )
+    scheduler.add_job(lambda: asyncio.create_task(send_daily_questions(application)),
+                      "cron", hour=10, minute=0)
     scheduler.start()
 
-    logger.info("Бот запущен")
-    await application.run_polling()
+    # Запуск бота вручную (без run_polling)
+    await application.initialize()
+    await application.start()
+    logger.info("Бот запущен и ждёт события...")
+
+    try:
+        await asyncio.Event().wait()  # держим процесс живым
+    finally:
+        await application.stop()
+        await application.shutdown()
 
 if __name__ == "__main__":
     asyncio.run(main())
