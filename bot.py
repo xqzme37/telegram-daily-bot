@@ -3,6 +3,7 @@ from telegram.ext import Application, CommandHandler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import time
 import pytz
+import asyncio
 
 # === НАСТРОЙКИ ===
 TOKEN = "ТВОЙ_ТОКЕН"  # вставь сюда токен бота
@@ -19,24 +20,31 @@ async def start(update, context):
     await update.message.reply_text("Привет! Я бот, который шлёт ежедневные вопросы.")
 
 async def send_daily_questions(context):
-    chat_id = context.job.chat_id
-    await context.bot.send_message(chat_id=chat_id, text="Ежедневный вопрос: Как дела?")
+    await context.bot.send_message(chat_id=context.job.chat_id, text="Ежедневный вопрос: Как дела?")
 
-# === ЗАПУСК ===
-def main():
+async def main():
     application = Application.builder().token(TOKEN).build()
 
-    # Команда /start
+    # /start команда
     application.add_handler(CommandHandler("start", start))
 
     # Планировщик
     scheduler = AsyncIOScheduler(timezone=TIMEZONE)
-    # Например, отправлять каждый день в 10:00 по Москве
-    scheduler.add_job(send_daily_questions, "cron", hour=10, minute=0, args=[application])
+    # Пример: отправка каждый день в 10:00
+    scheduler.add_job(
+        lambda: application.create_task(
+            send_daily_questions(
+                type("obj", (object,), {"bot": application.bot, "job": type("j", (object,), {"chat_id": ЧАТ_ID})()})
+            )
+        ),
+        "cron",
+        hour=10,
+        minute=0
+    )
     scheduler.start()
 
     logger.info("Бот запущен")
-    application.run_polling()
+    await application.run_polling()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
